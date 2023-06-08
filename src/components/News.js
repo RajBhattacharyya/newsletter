@@ -1,96 +1,72 @@
-import React, { Component } from "react";
+import React, { useEffect, useState } from "react";
 import NewsItem from "./NewsItem";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Button from "react-bootstrap/Button";
 import Spinner from "./Spinner";
 import PropTypes from "prop-types";
+import InfiniteScroll from "react-infinite-scroll-component";
 
-export default class News extends Component {
-  static defaultProps = {
-    country: "in",
-    pageSize: 5,
-    category: "general",
+export default function News(props) {
+  const [articles, setarticles] = useState([])
+  const [loading, setloading] = useState(true)
+  const [page, setpage] = useState(1)
+  const [totalResults, settotalResults] = useState(0)
+
+  const capitalize = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  static propTypes = {
-    country: PropTypes.string,
-    pageSize: PropTypes.number,
-    category: PropTypes.string,
-  };
 
-  constructor() {
-    super();
-    this.state = {
-      articles: [],
-      loading: false,
-      page: 1,
-    };
+  const updateNews = async ()=>{
+    props.setProgess(10)
+    const url = `https://newsapi.org/v2/top-headlines?apiKey=${props.apiKey}&category=${props.category}&country=${props.country}&page=1&pageSize=${props.pageSize}`;
+    setloading(true);
+    let data = await fetch(url);
+    props.setProgess(30);
+    let parsedData = await data.json();
+    props.setProgess(60);
+    setarticles(parsedData.articles);
+    settotalResults(parsedData.totalResults);
+    setloading(false);
+    props.setProgess(100);
   }
 
-  async componentDidMount() {
-    let url = `https://newsapi.org/v2/top-headlines?apiKey=fc36079860474865bc569ee53665374e&category=${this.props.category}&country=${this.props.country}&pageSize=${this.props.pageSize}`;
-    this.setState({ loading: true });
-    let data = await fetch(url);
-    let parseData = await data.json();
-    console.log(parseData);
-    this.setState({
-      articles: parseData.articles,
-      totalResults: parseData.totalResults,
-      loading: false,
-    });
-  }
+  useEffect(() => {
+    document.title = `${capitalize(props.category)} - NewsLetter`;
+    updateNews();
+    //eslint-disable-next-line
+  }, [])
 
-  handlePrevClick = async () => {
-    console.log("prev");
-    let url = `https://newsapi.org/v2/top-headlines?apiKey=fc36079860474865bc569ee53665374e&category=${
-      this.props.category
-    }&country=${this.props.country}&page=${this.state.page - 1}&pageSize=${
-      this.props.pageSize
-    }`;
-    this.setState({ loading: true });
+  const fetchMoreData = async () => {
+    const url = `https://newsapi.org/v2/top-headlines?apiKey=${props.apiKey}&category=${props.category}&country=${props.country}&page=${page+1}&pageSize=${props.pageSize}`;
+    setpage(page + 1);
     let data = await fetch(url);
-    let parseData = await data.json();
-    this.setState({
-      articles: parseData.articles,
-      page: this.state.page - 1,
-      loading: false,
-    });
-  };
-  handleNextClick = async () => {
-    console.log("next");
-    let url = `https://newsapi.org/v2/top-headlines?apiKey=fc36079860474865bc569ee53665374e&category=${
-      this.props.category
-    }&country=${this.props.country}&page=${this.state.page + 1}&pageSize=${
-      this.props.pageSize
-    }`;
-    this.setState({ loading: true });
-    let data = await fetch(url);
-    let parseData = await data.json();
-    this.setState({
-      articles: parseData.articles,
-      page: this.state.page + 1,
-      loading: false,
-    });
+    let parsedData = await data.json();
+    setarticles(articles.concat(parsedData.articles));
+    settotalResults(parsedData.totalResults);
   };
 
-  render() {
     return (
       <>
-        <Container my={3}>
-          <h1 className="my-3 text-center">
-            NewsLetter - Top {this.props.category} headlines
-          </h1>
-          {this.state.loading && <Spinner />}
-          <Row>
-            {!this.state.loading &&
-              this.state.articles.map((element) => {
+        <h1 className="text-center" style={{margin: "90px 0px 35px"}}>
+          NewsLetter - Top {capitalize(props.category)} Headlines
+        </h1>
+        {loading && <Spinner />}
+        <InfiniteScroll
+          dataLength={articles.length}
+          next={fetchMoreData}
+          hasMore={articles.length !== totalResults}
+          loader={<Spinner />}
+        >
+          <Container my={3}>
+            <Row>
+              {articles.map((element) => {
                 return (
                   <Col md={4} key={element.url}>
                     <NewsItem
                       title={element.title}
-                      description={element.description}
+                      description={element.description? element.description: null}
                       imageUrl={
                         element.urlToImage
                           ? element.urlToImage
@@ -104,29 +80,21 @@ export default class News extends Component {
                   </Col>
                 );
               })}
-          </Row>
-        </Container>
-        <Container className="d-flex justify-content-between">
-          <Button
-            variant="dark"
-            disabled={this.state.page <= 1}
-            onClick={this.handlePrevClick}
-          >
-            {" "}
-            &larr; Previous
-          </Button>
-          <Button
-            variant="dark"
-            disabled={
-              this.state.page + 1 >
-              Math.ceil(this.state.totalResults / this.props.pageSize)
-            }
-            onClick={this.handleNextClick}
-          >
-            Next &rarr;{" "}
-          </Button>
-        </Container>
+            </Row>
+          </Container>
+        </InfiniteScroll>
       </>
     );
-  }
 }
+
+News.defaultProps = {
+  country: "in",
+  pageSize: 8,
+  category: "general",
+};
+
+News.propTypes = {
+  country: PropTypes.string,
+  pageSize: PropTypes.number,
+  category: PropTypes.string,
+};

@@ -1,12 +1,10 @@
-import React, { Component } from "react";
+import React from "react";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Badge from "react-bootstrap/Badge";
 
-export default class NewsItem extends Component {
-  render() {
-    let { title, description, imageUrl, newsUrl, author, date, source } =
-      this.props;
+export default function NewsItem(props) {
+    let { title, description, imageUrl, newsUrl, author, date, source } = props;
     return (
       <div className="my-3">
         <Card>
@@ -17,7 +15,7 @@ export default class NewsItem extends Component {
             style={{
               position: "absolute",
               zIndex: 1,
-              left: "75%",
+              right: 0,
               top: "-10px",
             }}
           >
@@ -39,7 +37,4 @@ export default class NewsItem extends Component {
         </Card>
       </div>
     );
-  }
 }
-
-//fc36079860474865bc569ee53665374e
